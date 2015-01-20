@@ -180,7 +180,7 @@ class Tweet:
 if __name__ == "__main__":
     tweets_grabber = Tweet(credentials)
     tweets_grabber.authenticate()
-    tweets_grabber.create_database("test.db")
+    tweets_grabber.create_database("tweets.db")
     tweets_grabber.record()
 
     # for tweet in tweets_grabber.sample():
