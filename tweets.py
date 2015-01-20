@@ -6,7 +6,7 @@ from logging.handlers import RotatingFileHandler
 
 # Creation of a logger
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 
@@ -34,6 +34,7 @@ class Tweet:
         self.credentials = credentials
         self.api = None
         self.authenticated = False
+        self.database = None
 
     def authenticate(self):
         """Perform the authentication using the credentials given during the object instantiation."""
@@ -68,49 +69,76 @@ class Tweet:
            out: boolean
                True if the tweet is conform, False otherwise
         """
-        if not all([arg in tweet for arg in ["lang", "place", "created_at"]]):
+        if tweet is None:
+            logger.debug("The tweet is a NoneType object.")
+            return False
+
+        elif not all([arg in tweet for arg in ["lang", "place", "created_at"]]):
             logger.debug("The tweet failed the test because one field was missing.")
             return False
 
-        elif not isinstance(tweet["lang"], str) or tweet["lang"] != "":
-            logger.debug("The tweet failed the test because the 'lang' field was incorrect.")
+        elif not isinstance(tweet["lang"], str) or tweet["lang"] == "":
+            logger.debug("The tweet failed the test because the 'lang' field was incorrect: {}".format(tweet["lang"]))
+            logger.debug(type(tweet["lang"]))
             return False
 
-        elif not isinstance(tweet["created_at"], str) or tweet["created_at"] != "":
-            logger.debug("The tweet failed the test because the 'created_at' field was incorrect.")
+        elif not isinstance(tweet["created_at"], str) or tweet["created_at"] == "":
+            logger.debug("The tweet failed the test because the 'created_at' field was "
+                         "incorrect: {}.".format(tweet["created_at"]))
+            return False
+
+        if not hasattr(tweet["place"], "__getitem__"):
+            logger.debug("The tweet failed the test because the 'place' field is not iterable.")
             return False
 
         elif not all([arg in tweet["place"] for arg in ["country_code", "name", "id"]]):
             logger.debug("The tweet failed the test because one field was missing in 'place'.")
             return False
 
-        elif not isinstance(tweet["place"]["country_code"], str) or len(tweet["place"]["country_code"]) != 2:
-            logger.debug("The tweet failed the test because the 'country_code' in the 'place' field was incorrect.")
+        elif not isinstance(tweet["place"]["country_code"], str) or tweet["place"]["country_code"] == "":
+            logger.debug("The tweet failed the test because the 'country_code' in the 'place' field was "
+                         "incorrect: {}.".format(tweet["place"]["country_code"]))
             return False
 
-        elif not isinstance(tweet["place"]["name"], str) or len(tweet["place"]["name"]) != "":
-            logger.debug("The tweet failed the test because the 'name' in the 'place' field was incorrect.")
+        elif not isinstance(tweet["place"]["name"], str) or tweet["place"]["name"] == "":
+            logger.debug("The tweet failed the test because the 'name' in the 'place' field was "
+                         "incorrect: {}.".format(tweet["place"]["name"]))
             return False
 
-        elif not isinstance(tweet["place"]["id"], str) or len(tweet["place"]["id"]) != "":
-            logger.debug("The tweet failed the test because the 'id' in the 'place' field was incorrect.")
+        elif not isinstance(tweet["place"]["id"], str) or tweet["place"]["id"] == "":
+            logger.debug("The tweet failed the test because the 'id' in the 'place' field was "
+                         "incorrect: {}.".format(tweet["place"]["id"]))
+            return False
+
+        elif tweet["place"]["place_type"] != 'city':
+            logger.debug("The tweet failed the test because the 'place' is not a city.")
             return False
 
         else:
             return True
 
-    def record(self, tweet, database):
+    def create_database(self, dbname):
+        """Create the database where the tweet-related data are stored.
+
+        Parameters:
+        ----------
+        dbname: str
+               A string corresponding to the Sqlite file database where the data must be stored.
+        """
+        pass
+
+    def record(self, tweet):
         """Record the input tweet in the given database.
 
         Parameters:
         ----------
         tweet: dictionary
               A dictionary corresponding to the tweet in the JSON format.
-        database: str
-                 A string corresponding to the Sqlite file database where the data must be stored.
         """
-        sqlite3.connect(database)
+        if self.database is None:
+            raise Exception("No database was created, please create a database before starting to record tweets.")
 
+        sqlite3.connect(self.database)
 
 
 if __name__ == "__main__":
@@ -118,4 +146,5 @@ if __name__ == "__main__":
     tweets_grabber.authenticate()
 
     for tweet in tweets_grabber.sample():
-        print(tweets_grabber.check_tweet(tweet))
+        if tweets_grabber.check_tweet(tweet):
+            print(tweet["place"]["url"])
