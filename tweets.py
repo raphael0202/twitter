@@ -49,9 +49,40 @@ class Tweet:
            out: boolean
                True if the tweet is conform, False otherwise
         """
-        pass
+        if not all([arg in tweet for arg in ["lang", "place", "created_at"]]):
+            return False
 
-    def record(self):
+        elif not isinstance(tweet["lang"], str) or tweet["lang"] != "":
+            return False
+
+        elif not isinstance(tweet["created_at"], str) or tweet["created_at"] != "":
+            return False
+
+        elif not all([arg in tweet["place"] for arg in ["country_code", "name", "id"]]):
+            return False
+
+        elif not isinstance(tweet["place"]["country_code"], str) or len(tweet["place"]["country_code"]) != 2:
+            return False
+
+        elif not isinstance(tweet["place"]["name"], str) or len(tweet["place"]["name"]) != "":
+            return False
+
+        elif not isinstance(tweet["place"]["id"], str) or len(tweet["place"]["id"]) != "":
+            return False
+
+        else:
+            return True
+
+    def record(self, tweet, database):
+        """Record the input tweet in the given database.
+
+        Parameters:
+        ----------
+        tweet: dictionary
+              A dictionary corresponding to the tweet in the JSON format.
+        database: str
+                 A string corresponding to the Sqlite file database where the data must be stored.
+        """
         pass
 
 
