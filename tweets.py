@@ -17,15 +17,42 @@ class Tweet:
         self.authenticated = False
 
     def authenticate(self):
+        """Perform the authentication using the credentials given during the object instantiation."""
         if not self.authenticated:
             self.api = TwitterStream(auth=OAuth(**self.credentials))
             self.authenticated = True
 
     def sample(self):
+        """Return the tweets sampled by the Twitter sample API.
+
+           Returns:
+           -------
+           out: generator
+               A generator returning the tweets in the JSON format.
+        """
+
         if not self.authenticated:
             raise AccessError("You are not authenticated, please authenticate before streaming tweets.")
         else:
             return self.api.statuses.sample()
+
+    def check_tweet(self, tweet):
+        """Check whether the input tweet has all the necessary information to be saved and processed later on.
+
+           Parameters:
+           ----------
+           tweet: dictionary
+                 A dictionary corresponding to the tweet in the JSON format.
+
+           Returns:
+           -------
+           out: boolean
+               True if the tweet is conform, False otherwise
+        """
+        pass
+
+    def record(self):
+        pass
 
 
 if __name__ == "__main__":
