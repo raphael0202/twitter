@@ -69,53 +69,43 @@ class Tweet:
            out: boolean
                True if the tweet is conform, False otherwise
         """
+        tweet_fields = ["lang", "place", "created_at", "id_str"]
+        place_fields = ["country_code", "name", "id", "place_type"]
+
         if tweet is None:
             logger.debug("The tweet is a NoneType object.")
             return False
 
-        elif not all([arg in tweet for arg in ["lang", "place", "created_at"]]):
-            logger.debug("The tweet failed the test because one field was missing.")
-            return False
+        for field in tweet_fields:
+            if field not in tweet:
+                logger.debug("The tweet failed the test because the {} field was missing.".format(field))
+                return False
 
-        elif not isinstance(tweet["lang"], str) or tweet["lang"] == "":
-            logger.debug("The tweet failed the test because the 'lang' field was incorrect: {}".format(tweet["lang"]))
-            logger.debug(type(tweet["lang"]))
-            return False
-
-        elif not isinstance(tweet["created_at"], str) or tweet["created_at"] == "":
-            logger.debug("The tweet failed the test because the 'created_at' field was "
-                         "incorrect: {}.".format(tweet["created_at"]))
-            return False
+            if not isinstance(tweet[field], str) or tweet[field] == "":
+                logger.debug("The tweet failed the test because the {} field"
+                             "was incorrect: {}".format(field, tweet[field]))
+                return False
 
         if not hasattr(tweet["place"], "__getitem__"):
             logger.debug("The tweet failed the test because the 'place' field is not iterable.")
             return False
 
-        elif not all([arg in tweet["place"] for arg in ["country_code", "name", "id"]]):
-            logger.debug("The tweet failed the test because one field was missing in 'place'.")
-            return False
+        for field in place_fields:
+            if field not in tweet["place"]:
+                logger.debug("The tweet failed the test because the {} field was "
+                             "missing in tweet['place'].".format(field))
+                return False
 
-        elif not isinstance(tweet["place"]["country_code"], str) or tweet["place"]["country_code"] == "":
-            logger.debug("The tweet failed the test because the 'country_code' in the 'place' field was "
-                         "incorrect: {}.".format(tweet["place"]["country_code"]))
-            return False
+            if not isinstance(tweet["place"][field], str) or tweet["place"][field] == "":
+                logger.debug("The tweet failed the test because the {} field in tweet['place'] was "
+                             "incorrect: {}.".format(field, tweet["place"][field]))
+                return False
 
-        elif not isinstance(tweet["place"]["name"], str) or tweet["place"]["name"] == "":
-            logger.debug("The tweet failed the test because the 'name' in the 'place' field was "
-                         "incorrect: {}.".format(tweet["place"]["name"]))
-            return False
-
-        elif not isinstance(tweet["place"]["id"], str) or tweet["place"]["id"] == "":
-            logger.debug("The tweet failed the test because the 'id' in the 'place' field was "
-                         "incorrect: {}.".format(tweet["place"]["id"]))
-            return False
-
-        elif tweet["place"]["place_type"] != 'city':
+        if tweet["place"]["place_type"] != 'city':
             logger.debug("The tweet failed the test because the 'place' is not a city.")
             return False
 
-        else:
-            return True
+        return True
 
     def create_database(self, dbname):
         """Create the database where the tweet-related data are stored.
@@ -125,7 +115,21 @@ class Tweet:
         dbname: str
                A string corresponding to the Sqlite file database where the data must be stored.
         """
-        pass
+        conn = sqlite3.connect(dbname)
+        c = conn.cursor()
+
+        c.execute("""CREATE TABLE PLACE
+                     (PLACE_ID VARCHAR(50) NOT NULL PRIMARY KEY,
+                      COUNTRY_CODE VARCHAR(5) NOT NULL,
+                      NAME VARCHAR(50) NOT NULL)
+                  """)
+
+        c.execute("""CREATE TABLE TWEET
+                     (TWEET_ID VARCHAR(50) NOT NULL PRIMARY KEY,
+                      CREATED_AT VARCHAR(50) NOT NULL,
+                      LANG VARCHAR (5) NOT NULL,
+                      PLACE_ID VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES PLACE (PLACE_ID))
+                 """)
 
     def record(self, tweet):
         """Record the input tweet in the given database.
@@ -138,7 +142,8 @@ class Tweet:
         if self.database is None:
             raise Exception("No database was created, please create a database before starting to record tweets.")
 
-        sqlite3.connect(self.database)
+        conn = sqlite3.connect(self.database)
+        c = conn.cursor()
 
 
 if __name__ == "__main__":
