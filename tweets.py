@@ -1,3 +1,4 @@
+from __future__ import unicode_literals, division
 from twitter import OAuth, TwitterStream
 import sqlite3
 import logging
@@ -82,9 +83,9 @@ class Tweet:
                 logger.debug("The tweet failed the test because the {} field was missing.".format(field))
                 return False
 
-            if not isinstance(tweet[field], str) or tweet[field] == "":
+            if not isinstance(tweet[field], unicode) or tweet[field] == "":
                 if field != "place":
-                    logger.debug("The tweet failed the test because the {} field"
+                    logger.debug("The tweet failed the test because the {} field "
                                  "was incorrect: {}".format(field, tweet[field]))
                     return False
 
@@ -98,7 +99,7 @@ class Tweet:
                              "missing in tweet['place'].".format(field))
                 return False
 
-            if not isinstance(tweet["place"][field], str) or tweet["place"][field] == "":
+            if not isinstance(tweet["place"][field], unicode) or tweet["place"][field] == "":
                 logger.debug("The tweet failed the test because the {} field in tweet['place'] was "
                              "incorrect: {}.".format(field, tweet["place"][field]))
                 return False
@@ -122,21 +123,26 @@ class Tweet:
         conn = sqlite3.connect(dbname)
         c = conn.cursor()
 
-        c.execute("""CREATE TABLE PLACE
-                     (PLACE_ID VARCHAR(50) NOT NULL PRIMARY KEY,
-                      COUNTRY_CODE VARCHAR(5) NOT NULL,
-                      NAME VARCHAR(50) NOT NULL);
-                  """)
+        try:
+            c.execute("""CREATE TABLE PLACE
+                         (PLACE_ID VARCHAR(50) NOT NULL PRIMARY KEY,
+                          COUNTRY_CODE VARCHAR(5) NOT NULL,
+                          NAME VARCHAR(50) NOT NULL);
+                      """)
 
-        c.execute("""CREATE TABLE TWEET
-                     (TWEET_ID VARCHAR(50) NOT NULL PRIMARY KEY,
-                      CREATED_AT VARCHAR(50) NOT NULL,
-                      LANG VARCHAR (5) NOT NULL,
-                      PLACE_ID VARCHAR(50) NOT NULL,
-                      FOREIGN KEY(PLACE_ID) REFERENCES PLACE(PLACE_ID));
-                 """)
-        conn.commit()
-        conn.close()
+            c.execute("""CREATE TABLE TWEET
+                         (TWEET_ID VARCHAR(50) NOT NULL PRIMARY KEY,
+                          CREATED_AT VARCHAR(50) NOT NULL,
+                          LANG VARCHAR (5) NOT NULL,
+                          PLACE_ID VARCHAR(50) NOT NULL,
+                          FOREIGN KEY(PLACE_ID) REFERENCES PLACE(PLACE_ID));
+                     """)
+        except sqlite3.IntegrityError:
+            pass
+        else:
+            conn.commit()
+        finally:
+            conn.close()
 
     def record_tweet(self, tweet):
         """Record the input tweet in the given database.
