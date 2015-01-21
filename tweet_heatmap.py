@@ -1,5 +1,9 @@
+from collections import defaultdict
 import sqlite3
 import json
+import datetime
+import time as time
+import collections
 
 
 class TweetCoord:
@@ -14,6 +18,18 @@ class TweetCoord:
         coordinates = c.execute("SELECT COORDINATES "
                                 "FROM TWEET, PLACE "
                                 "WHERE TWEET.PLACE_ID = PLACE.PLACE_ID")
+
+        conn.close()
+        return coordinates
+
+    def coord_time(self):
+        """Obtain tweet spatial coordinates along with the time of their creation"""
+        conn = sqlite3.connect(self.dbname)
+        c = conn.cursor()
+
+        coordinates = c.execute("SELECT COORDINATES, CREATED_AT "
+                                "FROM TWEET, PLACE "
+                                "WHERE TWEET.PLACE_ID = PLACE.PLACE_ID").fetchall()
 
         conn.close()
         return coordinates
@@ -34,3 +50,34 @@ class TweetCoord:
             for coord in coordinates:
                 data = json.loads(coord[0])
                 output_file.write("{} {}\n".format(data[1], data[0]))
+
+def time_window(timedelta, time_coordinates):
+        processed = []
+        for tc in time_coordinates:
+            coords = json.loads(tc[0])
+            created_at = datetime.datetime.strptime(tc[1], "%a %b %d %H:%M:%S +0000 %Y")
+            processed.append((coords, created_at))
+
+        time_ordered = sorted(processed, key=lambda x: x[1])
+
+        count = defaultdict(list)
+        first_time = time_ordered[0][1]
+
+        for e in time_ordered:
+            if e[1] < first_time + timedelta:
+                if first_time not in count:
+                    count[first_time] = [e[0]]
+                else:
+                    count[first_time].append(e[0])
+            else:
+                first_time = e[1]
+                count[first_time] = [e[0]]
+
+        return count
+
+t = TweetCoord("tweets.db")
+ct = t.coord_time()
+tw = datetime.timedelta(0,0,0,0,1)
+ct = time_window(tw,ct)
+
+print sorted(ct.keys())
