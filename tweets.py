@@ -30,8 +30,7 @@ credentials = {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
 
 
 def polygon_centroid(points):
-    polygon = np.array(points)
-    return np.sum(polygon, axis=0) / polygon.shape[0]
+    return np.sum(points, axis=0) / points.shape[0]
 
 
 class AccessError(Exception):
@@ -66,7 +65,8 @@ class Tweet:
         else:
             return self.api.statuses.sample()
 
-    def check_tweet(self, tweet):
+    @staticmethod
+    def check_tweet(tweet):
         """Check whether the input tweet has all the necessary information to be saved and processed later on.
 
            Parameters:
@@ -80,7 +80,8 @@ class Tweet:
                True if the tweet is conform, False otherwise
         """
         tweet_fields = ["lang", "place", "created_at", "id_str"]
-        place_fields = ["country_code", "name", "id", "place_type"]
+        place_fields = ["country_code", "name", "id", "place_type", "bounding_box"]
+        bounding_box_fields = ["type", "coordinates"]
 
         if tweet is None:
             logger.debug("The tweet is a NoneType object.")
@@ -116,6 +117,26 @@ class Tweet:
             logger.debug("The tweet failed the test because the 'place' is not a city.")
             return False
 
+        for field in bounding_box_fields:
+            if field not in tweet["place"]["bounding_box"]:
+                logger.debug("The tweet failed the test because the {} field was "
+                             "missing in tweet['place']['bounding_box'].".format(field))
+                return False
+
+        if tweet["place"]["bounding_box"] != "Polygon":
+            logger.debug("The tweet failed the test because the 'bounding_box' is not a Polygon")
+            return False
+
+        try:
+            array = np.array(tweet["place"]["bounding_box"]["coordinates"], dtype=np.float64)
+        except Exception as e:
+            logger.debug(e)
+            return False
+
+        if array.ndim != 3:
+            logger.debug("The 'coordinates' array is not of dimension 3.")
+            return False
+
         return True
 
     def create_database(self, dbname):
@@ -135,7 +156,8 @@ class Tweet:
             c.execute("""CREATE TABLE PLACE
                          (PLACE_ID VARCHAR(50) NOT NULL PRIMARY KEY,
                           COUNTRY_CODE VARCHAR(5) NOT NULL,
-                          NAME VARCHAR(50) NOT NULL);
+                          NAME VARCHAR(50) NOT NULL,
+                          COORDINATES VARCHAR(500) NOT NULL);
                       """)
 
             c.execute("""CREATE TABLE TWEET
@@ -172,7 +194,8 @@ class Tweet:
         if place_exists is None:
             c.execute("""INSERT INTO PLACE VALUES(?, ?, ?)""", (tweet["place"]["id"],
                                                                 tweet["place"]["country_code"],
-                                                                tweet["place"]["name"]
+                                                                tweet["place"]["name"],
+                                                                tweet["place"]["bounding_box"]["coordinates"][0]
                                                                 ))
 
         c.execute("""INSERT INTO TWEET VALUES(?, ?, ?, ?)""", (tweet["id_str"],
