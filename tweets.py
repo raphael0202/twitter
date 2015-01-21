@@ -6,7 +6,7 @@ import sqlite3
 import numpy as np
 import logging
 from logging.handlers import RotatingFileHandler
-
+import json
 
 # Creation of a logger
 logger = logging.getLogger()
@@ -30,7 +30,8 @@ credentials = {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
 
 
 def polygon_centroid(points):
-    return np.sum(points, axis=0) / points.shape[0]
+    polygon = np.array(points, dtype=np.float64)
+    return np.sum(polygon, axis=0) / polygon.shape[0]
 
 
 class AccessError(Exception):
@@ -99,7 +100,8 @@ class Tweet:
                     return False
 
         if not hasattr(tweet["place"], "__getitem__"):
-            logger.debug("The tweet failed the test because the 'place' field is not iterable.")
+            logger.debug("The tweet failed the test because the 'place' field is "
+                         "not iterable: {}.".format(tweet["place"]))
             return False
 
         for field in place_fields:
@@ -108,13 +110,19 @@ class Tweet:
                              "missing in tweet['place'].".format(field))
                 return False
 
-            if not isinstance(tweet["place"][field], unicode) or tweet["place"][field] == "":
-                logger.debug("The tweet failed the test because the {} field in tweet['place'] was "
-                             "incorrect: {}.".format(field, tweet["place"][field]))
-                return False
+            if field != "bounding_box":
+                if not isinstance(tweet["place"][field], unicode) or tweet["place"][field] == "":
+                    logger.debug("The tweet failed the test because the {} field in tweet['place'] was "
+                                 "incorrect: {}.".format(field, tweet["place"][field]))
+                    return False
+            else:
+                if not hasattr(tweet["place"]["bounding_box"], "__getitem__"):
+                    logger.debug("The tweet failed the test because the 'bounding_box' field is not iterable.")
+                    return False
 
         if tweet["place"]["place_type"] != 'city':
-            logger.debug("The tweet failed the test because the 'place' is not a city.")
+            logger.debug("The tweet failed the test because the 'place' is "
+                         "not a city: {}.".format(tweet["place"]["place_type"]))
             return False
 
         for field in bounding_box_fields:
@@ -123,18 +131,19 @@ class Tweet:
                              "missing in tweet['place']['bounding_box'].".format(field))
                 return False
 
-        if tweet["place"]["bounding_box"] != "Polygon":
-            logger.debug("The tweet failed the test because the 'bounding_box' is not a Polygon")
+        if tweet["place"]["bounding_box"]["type"] != "Polygon":
+            logger.debug("The tweet failed the test because the 'bounding_box' is "
+                         "not a Polygon: {}.".format(tweet["place"]["bounding_box"]))
             return False
 
         try:
             array = np.array(tweet["place"]["bounding_box"]["coordinates"], dtype=np.float64)
         except Exception as e:
-            logger.debug(e)
+            logger.info(e)
             return False
 
         if array.ndim != 3:
-            logger.debug("The 'coordinates' array is not of dimension 3.")
+            logger.info("The 'coordinates' array is not of dimension 3: dimension {}".format(array.ndim))
             return False
 
         return True
@@ -157,7 +166,7 @@ class Tweet:
                          (PLACE_ID VARCHAR(50) NOT NULL PRIMARY KEY,
                           COUNTRY_CODE VARCHAR(5) NOT NULL,
                           NAME VARCHAR(50) NOT NULL,
-                          COORDINATES VARCHAR(500) NOT NULL);
+                          COORDINATES VARCHAR(100) NOT NULL);
                       """)
 
             c.execute("""CREATE TABLE TWEET
@@ -192,11 +201,13 @@ class Tweet:
         place_exists = c.execute("""SELECT * FROM PLACE WHERE PLACE_ID = ?""", (tweet["place"]["id"], )).fetchone()
 
         if place_exists is None:
-            c.execute("""INSERT INTO PLACE VALUES(?, ?, ?)""", (tweet["place"]["id"],
-                                                                tweet["place"]["country_code"],
-                                                                tweet["place"]["name"],
-                                                                tweet["place"]["bounding_box"]["coordinates"][0]
-                                                                ))
+            coordinates = polygon_centroid(tweet["place"]["bounding_box"]["coordinates"][0])
+            coordinates = json.dumps(list(coordinates))
+            c.execute("""INSERT INTO PLACE VALUES(?, ?, ?, ?)""", (tweet["place"]["id"],
+                                                                   tweet["place"]["country_code"],
+                                                                   tweet["place"]["name"],
+                                                                   coordinates
+                                                                   ))
 
         c.execute("""INSERT INTO TWEET VALUES(?, ?, ?, ?)""", (tweet["id_str"],
                                                                tweet["created_at"],
