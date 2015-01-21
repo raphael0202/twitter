@@ -19,9 +19,9 @@ file_handler.setLevel(logging.INFO)
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
-steam_handler = logging.StreamHandler()
-steam_handler.setLevel(logging.DEBUG)
-logger.addHandler(steam_handler)
+# steam_handler = logging.StreamHandler()
+# steam_handler.setLevel(logging.DEBUG)
+# logger.addHandler(steam_handler)
 
 credentials = {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
                "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
