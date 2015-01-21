@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from __future__ import unicode_literals, division
 from twitter import OAuth, TwitterStream
 import sqlite3
