@@ -10,18 +10,18 @@ import json
 
 # Creation of a logger
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 
 formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
 
-file_handler = RotatingFileHandler('activity.log', 'a', 1000000, 1)
-file_handler.setLevel(logging.INFO)
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+# file_handler = RotatingFileHandler('activity.log', 'a', 1000000, 1)
+# file_handler.setLevel(logging.INFO)
+# file_handler.setFormatter(formatter)
+# logger.addHandler(file_handler)
 
-# steam_handler = logging.StreamHandler()
-# steam_handler.setLevel(logging.DEBUG)
-# logger.addHandler(steam_handler)
+steam_handler = logging.StreamHandler()
+steam_handler.setLevel(logging.DEBUG)
+logger.addHandler(steam_handler)
 
 credentials = {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
                "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
@@ -88,9 +88,13 @@ class Tweet:
             logger.debug("The tweet is a NoneType object.")
             return False
 
+        if "delete" in tweet:  # The tweet is a deletion task
+            return False
+
         for field in tweet_fields:
             if field not in tweet:
-                logger.debug("The tweet failed the test because the {} field was missing.".format(field))
+                logger.debug("The tweet failed the test because the {} field "
+                             "is missing: {}.".format(field))
                 return False
 
             if not isinstance(tweet[field], unicode) or tweet[field] == "":
