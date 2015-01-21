@@ -83,7 +83,17 @@ class TweetHeatMap:
 
 
 def time_window(timedelta, time_coordinates):
-    """Agregate tweets in time windows of timedelta time to monitor the temporal evolution"""
+    """Aggregate tweets in time windows of timedelta time to monitor the temporal evolution.
+
+       Parameters:
+       ----------
+       timedelta:
+       time_coordinates:
+
+       Returns:
+       -------
+       out: count
+    """
     processed = []
     for tc in time_coordinates:
         coords = json.loads(tc[0])
@@ -112,7 +122,7 @@ def time_window(timedelta, time_coordinates):
 
 t = TweetCoord("tweets.db")
 ct = t.coord_time()
-tw = datetime.timedelta(0,0,0,0,10,0) # one minute time delta
-ct = time_window(tw,ct)
+tw = datetime.timedelta(0, 0, 0, 0, 10, 0)  # one minute time delta
+ct = time_window(tw, ct)
 
 print ct.keys()
