@@ -43,7 +43,7 @@ class Tweet:
         self.credentials = credentials
         self.api = None
         self.authenticated = False
-        self.database = None
+        self.dbname = None
 
     def authenticate(self):
         """Perform the authentication using the credentials given during the object instantiation."""
@@ -157,32 +157,24 @@ class Tweet:
                A string corresponding to the Sqlite file database where the data must be stored.
         """
         logging.info("Creating database {}.".format(dbname))
-        self.database = dbname
+        self.dbname = dbname
         conn = sqlite3.connect(dbname)
         c = conn.cursor()
 
-        try:
-            c.execute("""CREATE TABLE PLACE
-                         (PLACE_ID VARCHAR(50) NOT NULL PRIMARY KEY,
-                          COUNTRY_CODE VARCHAR(5) NOT NULL,
-                          NAME VARCHAR(50) NOT NULL,
-                          COORDINATES VARCHAR(100) NOT NULL);
-                      """)
+        c.execute("""CREATE TABLE PLACE
+                     (PLACE_ID VARCHAR(50) NOT NULL PRIMARY KEY,
+                      COUNTRY_CODE VARCHAR(5) NOT NULL,
+                      NAME VARCHAR(50) NOT NULL,
+                      COORDINATES VARCHAR(100) NOT NULL);
+                  """)
 
-            c.execute("""CREATE TABLE TWEET
-                         (TWEET_ID VARCHAR(50) NOT NULL PRIMARY KEY,
-                          CREATED_AT VARCHAR(50) NOT NULL,
-                          LANG VARCHAR (5) NOT NULL,
-                          PLACE_ID VARCHAR(50) NOT NULL,
-                          FOREIGN KEY(PLACE_ID) REFERENCES PLACE(PLACE_ID));
-                     """)
-        except sqlite3.IntegrityError as ER:
-            logging.warn("Integrity Error:\n{}".format(ER))
-            pass
-        else:
-            conn.commit()
-        finally:
-            conn.close()
+        c.execute("""CREATE TABLE TWEET
+                     (TWEET_ID VARCHAR(50) NOT NULL PRIMARY KEY,
+                      CREATED_AT VARCHAR(50) NOT NULL,
+                      LANG VARCHAR (5) NOT NULL,
+                      PLACE_ID VARCHAR(50) NOT NULL,
+                      FOREIGN KEY(PLACE_ID) REFERENCES PLACE(PLACE_ID));
+                 """)
 
     def record_tweet(self, tweet):
         """Record the input tweet in the given database.
@@ -193,30 +185,35 @@ class Tweet:
               A dictionary corresponding to the tweet in the JSON format.
         """
         logger.info("Recording tweet {}.".format(tweet["id_str"]))
-        if self.database is None:
+        if self.dbname is None:
             raise Exception("No database was created, please create a database before starting to record tweets.")
 
-        conn = sqlite3.connect(self.database)
+        conn = sqlite3.connect(self.dbname)
         c = conn.cursor()
         place_exists = c.execute("""SELECT * FROM PLACE WHERE PLACE_ID = ?""", (tweet["place"]["id"], )).fetchone()
 
-        if place_exists is None:
-            coordinates = polygon_centroid(tweet["place"]["bounding_box"]["coordinates"][0])
-            coordinates = json.dumps(list(coordinates))
-            c.execute("""INSERT INTO PLACE VALUES(?, ?, ?, ?)""", (tweet["place"]["id"],
-                                                                   tweet["place"]["country_code"],
-                                                                   tweet["place"]["name"],
-                                                                   coordinates
+        try:
+            if place_exists is None:
+
+                coordinates = polygon_centroid(tweet["place"]["bounding_box"]["coordinates"][0])
+                coordinates = json.dumps(list(coordinates))
+                c.execute("""INSERT INTO PLACE VALUES(?, ?, ?, ?)""", (tweet["place"]["id"],
+                                                                       tweet["place"]["country_code"],
+                                                                       tweet["place"]["name"],
+                                                                       coordinates
+                                                                       ))
+
+            c.execute("""INSERT INTO TWEET VALUES(?, ?, ?, ?)""", (tweet["id_str"],
+                                                                   tweet["created_at"],
+                                                                   tweet["lang"],
+                                                                   tweet["place"]["id"]
                                                                    ))
-
-        c.execute("""INSERT INTO TWEET VALUES(?, ?, ?, ?)""", (tweet["id_str"],
-                                                               tweet["created_at"],
-                                                               tweet["lang"],
-                                                               tweet["place"]["id"]
-                                                               ))
-
-        conn.commit()
-        conn.close()
+        except Exception as e:
+            logging.warn("Exception raised during database writing:\n{}".format(e))
+        else:
+            conn.commit()
+        finally:
+            conn.close()
 
     def record(self):
         """Record the tweets from the sample Twitter API in the database."""
@@ -231,7 +228,3 @@ if __name__ == "__main__":
     tweets_grabber.authenticate()
     tweets_grabber.create_database("tweets.db")
     tweets_grabber.record()
-
-    # for tweet in tweets_grabber.sample():
-    #     if tweets_grabber.check_tweet(tweet):
-    #         print(tweet["place"]["url"])
