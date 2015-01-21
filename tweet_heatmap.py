@@ -52,32 +52,36 @@ class TweetCoord:
                 output_file.write("{} {}\n".format(data[1], data[0]))
 
 def time_window(timedelta, time_coordinates):
-        processed = []
-        for tc in time_coordinates:
-            coords = json.loads(tc[0])
-            created_at = datetime.datetime.strptime(tc[1], "%a %b %d %H:%M:%S +0000 %Y")
-            processed.append((coords, created_at))
+    """Agregate tweets in time windows of timedelta time to monitor the temporal evolution"""
+    processed = []
+    for tc in time_coordinates:
+        coords = json.loads(tc[0])
+        created_at = datetime.datetime.strptime(tc[1], "%a %b %d %H:%M:%S +0000 %Y")
+        processed.append((coords, created_at))
 
-        time_ordered = sorted(processed, key=lambda x: x[1])
+    time_ordered = sorted(processed, key=lambda x: x[1])
 
-        count = defaultdict(list)
-        first_time = time_ordered[0][1]
+    count = defaultdict(list)
+    first_time = time_ordered[0][1]
 
-        for e in time_ordered:
-            if e[1] < first_time + timedelta:
-                if first_time not in count:
-                    count[first_time] = [e[0]]
-                else:
-                    count[first_time].append(e[0])
-            else:
-                first_time = e[1]
+    for e in time_ordered:
+        if e[1] < first_time + timedelta:
+            if first_time not in count:
                 count[first_time] = [e[0]]
+            else:
+                count[first_time].append(e[0])
+        else:
+            while e[1] > first_time + timedelta:
+                first_time = first_time + timedelta
+                count[first_time] = []
 
-        return count
+            count[first_time] = [e[0]]
+
+    return count
 
 t = TweetCoord("tweets.db")
 ct = t.coord_time()
-tw = datetime.timedelta(0,0,0,0,1)
+tw = datetime.timedelta(0,0,0,0,10,0) # one minute time delta
 ct = time_window(tw,ct)
 
-print sorted(ct.keys())
+print ct.keys()
