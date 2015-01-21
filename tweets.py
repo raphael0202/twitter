@@ -3,6 +3,7 @@
 from __future__ import unicode_literals, division
 from twitter import OAuth, TwitterStream
 import sqlite3
+import numpy as np
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -26,6 +27,11 @@ credentials = {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
                "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
                "consumer_key": "V7xjnC1AdwECbbcv9OosDkawK",
                "consumer_secret": "rdEWrtop3r1ODjNCrPPpt18Z1Ey7BKtZRXJmwtTvQQ8u8JzULE"}
+
+
+def polygon_centroid(points):
+    polygon = np.array(points)
+    return np.sum(polygon, axis=0) / polygon.shape[0]
 
 
 class AccessError(Exception):
@@ -139,7 +145,8 @@ class Tweet:
                           PLACE_ID VARCHAR(50) NOT NULL,
                           FOREIGN KEY(PLACE_ID) REFERENCES PLACE(PLACE_ID));
                      """)
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as ER:
+            logging.warn("Integrity Error:\n{}".format(ER))
             pass
         else:
             conn.commit()
