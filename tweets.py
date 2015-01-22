@@ -263,9 +263,9 @@ class Tweet:
         if method == "sample":
             method_func = self.sample
         elif method == "filter":
-            method_function = self.filter 
+            method_func = self.filter
             
-        for tweet in self.method():
+        for tweet in method_func():
             self.check_connection(tweet) # check if we are still connected
             if self.check_tweet(tweet):
                 self.record_tweet(tweet)
