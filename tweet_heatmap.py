@@ -83,6 +83,7 @@ class TweetCoord:
                 data = json.loads(coord[0])
                 output_file.write("{} {}\n".format(data[1], data[0]))
 
+
 class TweetHeatMap:
     def __init__(self, dbname, config=None):
         self.dbname = dbname
@@ -240,11 +241,13 @@ class AnimatedAggregatedTweets:
 
         plt.show()
 
-delta = datetime.timedelta(0,0,0,0,10) # aggregate by one minute slices (we should use bigger delta with a bigger db)
-#am = AnimatedAggregatedTweets("tweets.db", delta, 100)
-#am.animated_map()
+if __name__ == "__main__":
+	delta = datetime.timedelta(0,0,0,0,10)
+	langs = ["fr","en","pt","in"]
+	VolumeTemps("tweets.db",langs,delta).plot_stacked()
 
-langs = ["fr","en","pt","in"]
-VolumeTemps("tweets.db",langs,delta).plot_stacked()
-
+#if __name__ == "__main__":
+#    delta = datetime.timedelta(0, 0, 0, 0, 1) # aggregate by one minute slices (we should use bigger delta with a bigger db)
+#    am = AnimatedAggregatedTweets("tweets.db", delta, 100)
+#    am.animated_map()
 

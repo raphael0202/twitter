@@ -34,11 +34,19 @@ for l in languages:
         if l[0] == langList[i][0] : map.plot(x,y,'o', markerfacecolor = col[i], markeredgecolor= 'none' ,alpha=.5, markersize=3)
 
 patches=list()
+
+
 for i in range(0,5):
     patches.append(mpatches.Patch(color=col[i], label=langList[i][0]))
     
 plt.legend(handles=patches, loc=3, handlelength=1.5, labelspacing=0.2, fontsize=10)
 
 fig = plt.gcf()
-fig.set_size_inches(10,6)
+fig.set_size_inches(12,8.5)
 fig.savefig('lang.png',dpi=100)
+
+
+
+
+
+
