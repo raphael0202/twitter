@@ -7,6 +7,7 @@ import numpy as np
 import logging
 from logging.handlers import RotatingFileHandler
 import json
+import time
 
 # Creation of a logger
 logger = logging.getLogger()
@@ -65,6 +66,12 @@ class Tweet:
             raise AccessError("You are not authenticated, please authenticate before streaming tweets.")
         else:
             return self.api.statuses.sample()
+
+    def check_connection(self,tweet):
+         if "hangup" in tweet:  # The stream was disconnected
+            logger.info("The stream was disconnected, attempting to reconnect in 5 min")
+            time.sleep(300) # wait 5 minutes
+            self.api = TwitterStream(auth=OAuth(**self.credentials))
 
     @staticmethod
     def check_tweet(tweet):
@@ -223,6 +230,7 @@ class Tweet:
         """Record the tweets from the sample Twitter API in the database."""
         logging.info("Starting recording tweets...")
         for tweet in self.sample():
+            self.check_connection(tweet) # check if we are still connected
             if self.check_tweet(tweet):
                 self.record_tweet(tweet)
 

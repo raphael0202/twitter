@@ -126,6 +126,7 @@ class AnimatedAggregatedTweets:
     def animated_map(self):
         """Plot the animated map"""
         self.time_window()
+        self.aggregate = collections.OrderedDict(sorted(self.aggregate.items() , key=lambda t: t[0]))
         map = Basemap(projection='cyl', resolution=None, lat_0=0., lon_0=0.)
         map.bluemarble()
 
@@ -141,10 +142,15 @@ class AnimatedAggregatedTweets:
             for pt,lon,lat in zip(points, lon, lat):
                 x, y = map(lon,lat)
                 pt.set_data(x, y)
+
+            plt.title('%s (UTC)' % self.aggregate.keys()[i])
             return points
 
         frm = len(self.aggregate)
         anim = animation.FuncAnimation(plt.gcf(), animate, frames=frm, interval=200)
+
+        #anim.save('movie.mp4')
+
         plt.show()
 
 delta = datetime.timedelta(0,0,0,0,1) # aggregate by one minute slices (we should use bigger delta with a bigger db)
