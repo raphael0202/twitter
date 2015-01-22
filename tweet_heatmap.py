@@ -10,6 +10,7 @@ import matplotlib.animation as animation
 import numpy as np
 from mpl_toolkits.basemap import Basemap
 import pandas as pd
+import matplotlib.patches as mpatches
 
 class TweetCoord:
     def __init__(self, dbname):
@@ -160,6 +161,7 @@ class VolumeTemps:
 
         x = []
         y = {}
+        patches=[]
 
         for l in langs:
             if l in self.aggregate:
@@ -167,7 +169,11 @@ class VolumeTemps:
                 x = count.keys()
                 y[l] = count.values()
 
-        plt.stackplot(x,y.values())
+        ax = plt.stackplot(x,y.values())
+        for i,poly in enumerate(ax):
+            patches.append(mpatches.Patch(color=poly._facecolors[0], label=langs[i]))
+
+        plt.legend(handles=patches)
         plt.show()
 
 
@@ -243,7 +249,7 @@ class AnimatedAggregatedTweets:
 
 if __name__ == "__main__":
 	delta = datetime.timedelta(0,0,0,0,10)
-	langs = ["fr","en","pt","in"]
+	langs = ["fr","en","pt","in","ja","es"]
 	VolumeTemps("tweets.db",langs,delta).plot_stacked()
 
 #if __name__ == "__main__":
