@@ -10,19 +10,18 @@ import json
 import time
 
 credentials = {'raphael': {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
-                             "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
-                             "consumer_key": "V7xjnC1AdwECbbcv9OosDkawK",
-                             "consumer_secret": "rdEWrtop3r1ODjNCrPPpt18Z1Ey7BKtZRXJmwtTvQQ8u8JzULE"},
+                           "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
+                           "consumer_key": "V7xjnC1AdwECbbcv9OosDkawK",
+                           "consumer_secret": "rdEWrtop3r1ODjNCrPPpt18Z1Ey7BKtZRXJmwtTvQQ8u8JzULE"},
                'martin': {'token': "2987208064-TbFv1uRAlKP9p3R3thm0eSoMnOLaK21aqoon5fi",
-                             'token_secret': "GsLxcuHgUVReN7Fppnw4obyWB7StekgUpunYGuwEkmGxM",
-                             'consumer_key': "ZhGac09sniZ0ni5DEnreCnATf",
-                             'consumer_secret': "KvQJ4uQuHO2XeZULVgF2u1FIsbNNbDi4al9Pmj6fvZuDIB6WCL"}
-               }
+                          'token_secret': "GsLxcuHgUVReN7Fppnw4obyWB7StekgUpunYGuwEkmGxM",
+                          'consumer_key': "ZhGac09sniZ0ni5DEnreCnATf",
+                          'consumer_secret': "KvQJ4uQuHO2XeZULVgF2u1FIsbNNbDi4al9Pmj6fvZuDIB6WCL"}
+}
 
 
 def log(steam_log=True, file_log=False, logger_level=logging.DEBUG,
         steam_level=logging.INFO, file_level=logging.INFO):
-
     # Creation of a logger
     logger = logging.getLogger()
     logger.setLevel(logger_level)
@@ -53,11 +52,12 @@ class AccessError(Exception):
 
 
 class Tweet:
-    def __init__(self, credentials):
+    def __init__(self, credentials, logger):
         self.credentials = credentials
         self.api = None
         self.authenticated = False
         self.dbname = None
+        self.logger = logger
 
     def authenticate(self):
         """Perform the authentication using the credentials given during the object instantiation."""
@@ -99,14 +99,13 @@ class Tweet:
         else:
             return self.api.statuses.filter(locations=loc)
 
-    def check_connection(self,tweet):
+    def check_connection(self, tweet):
         if "hangup" in tweet:  # The stream was disconnected
-            logger.info("The stream was disconnected, attempting to reconnect in 5 min")
-            time.sleep(300) # wait 5 minutes
+            self.logger.info("The stream was disconnected, attempting to reconnect in 5 min")
+            time.sleep(300)  # wait 5 minutes
             self.api = TwitterStream(auth=OAuth(**self.credentials))
 
-    @staticmethod
-    def check_tweet(tweet):
+    def check_tweet(self, tweet):
         """Check whether the input tweet has all the necessary information to be saved and processed later on.
 
            Parameters:
@@ -124,7 +123,7 @@ class Tweet:
         bounding_box_fields = ["type", "coordinates"]
 
         if tweet is None:
-            logger.debug("The tweet is a NoneType object.")
+            self.logger.debug("The tweet is a NoneType object.")
             return False
 
         if "delete" in tweet:  # The tweet is a deletion task
@@ -132,61 +131,61 @@ class Tweet:
 
         for field in tweet_fields:
             if field not in tweet:
-                logger.debug("The tweet failed the test because the {} field "
-                             "is missing.".format(field))
+                self.logger.debug("The tweet failed the test because the {} field "
+                                  "is missing.".format(field))
                 return False
 
             if not isinstance(tweet[field], unicode) or tweet[field] == "":
                 if field != "place":
-                    logger.debug("The tweet failed the test because the {} field "
-                                 "was incorrect: {}".format(field, tweet[field]))
+                    self.logger.debug("The tweet failed the test because the {} field "
+                                      "was incorrect: {}".format(field, tweet[field]))
                     return False
 
         if not hasattr(tweet["place"], "__getitem__"):
-            logger.debug("The tweet failed the test because the 'place' field is "
-                         "not iterable: {}.".format(tweet["place"]))
+            self.logger.debug("The tweet failed the test because the 'place' field is "
+                              "not iterable: {}.".format(tweet["place"]))
             return False
 
         for field in place_fields:
             if field not in tweet["place"]:
-                logger.debug("The tweet failed the test because the {} field is "
-                             "missing in tweet['place'].".format(field))
+                self.logger.debug("The tweet failed the test because the {} field is "
+                                  "missing in tweet['place'].".format(field))
                 return False
 
             if field != "bounding_box":
                 if not isinstance(tweet["place"][field], unicode) or tweet["place"][field] == "":
-                    logger.debug("The tweet failed the test because the {} field in tweet['place'] is "
-                                 "incorrect: {}.".format(field, tweet["place"][field]))
+                    self.logger.debug("The tweet failed the test because the {} field in tweet['place'] is "
+                                      "incorrect: {}.".format(field, tweet["place"][field]))
                     return False
             else:
                 if not hasattr(tweet["place"]["bounding_box"], "__getitem__"):
-                    logger.debug("The tweet failed the test because the 'bounding_box' field is not iterable.")
+                    self.logger.debug("The tweet failed the test because the 'bounding_box' field is not iterable.")
                     return False
 
         if tweet["place"]["place_type"] != 'city':
-            logger.debug("The tweet failed the test because the 'place' is "
-                         "not a city: {}.".format(tweet["place"]["place_type"]))
+            self.logger.debug("The tweet failed the test because the 'place' is "
+                              "not a city: {}.".format(tweet["place"]["place_type"]))
             return False
 
         for field in bounding_box_fields:
             if field not in tweet["place"]["bounding_box"]:
-                logger.debug("The tweet failed the test because the {} field is "
-                             "missing in tweet['place']['bounding_box'].".format(field))
+                self.logger.debug("The tweet failed the test because the {} field is "
+                                  "missing in tweet['place']['bounding_box'].".format(field))
                 return False
 
         if tweet["place"]["bounding_box"]["type"] != "Polygon":
-            logger.debug("The tweet failed the test because the 'bounding_box' is "
-                         "not a Polygon: {}.".format(tweet["place"]["bounding_box"]))
+            self.logger.debug("The tweet failed the test because the 'bounding_box' is "
+                              "not a Polygon: {}.".format(tweet["place"]["bounding_box"]))
             return False
 
         try:
             array = np.array(tweet["place"]["bounding_box"]["coordinates"], dtype=np.float64)
         except Exception as e:
-            logger.info(e)
+            self.logger.info(e)
             return False
 
         if array.ndim != 3:
-            logger.info("The 'coordinates' array is not of dimension 3: dimension {}".format(array.ndim))
+            self.logger.info("The 'coordinates' array is not of dimension 3: dimension {}".format(array.ndim))
             return False
 
         return True
@@ -227,7 +226,7 @@ class Tweet:
         tweet: dictionary
               A dictionary corresponding to the tweet in the JSON format.
         """
-        logger.info("Recording tweet {}.".format(tweet["id_str"]))
+        self.logger.info("Recording tweet {}.".format(tweet["id_str"]))
         if self.dbname is None:
             raise Exception("No database was created, please create a database before starting to record tweets.")
 
@@ -237,20 +236,19 @@ class Tweet:
 
         try:
             if place_exists is None:
-
                 coordinates = polygon_centroid(tweet["place"]["bounding_box"]["coordinates"][0])
                 coordinates = json.dumps(list(coordinates))
                 c.execute("""INSERT INTO PLACE VALUES(?, ?, ?, ?)""", (tweet["place"]["id"],
                                                                        tweet["place"]["country_code"],
                                                                        tweet["place"]["name"],
                                                                        coordinates
-                                                                       ))
+                ))
 
             c.execute("""INSERT INTO TWEET VALUES(?, ?, ?, ?)""", (tweet["id_str"],
                                                                    tweet["created_at"],
                                                                    tweet["lang"],
                                                                    tweet["place"]["id"]
-                                                                   ))
+            ))
         except Exception as e:
             logging.warn("Exception raised during database writing:\n{}".format(e))
         else:
@@ -271,15 +269,16 @@ class Tweet:
             method_func = self.sample
         elif method == "filter":
             method_func = self.filter
-            
+
         for tweet in method_func():
             self.check_connection(tweet)  # check if we are still connected
             if self.check_tweet(tweet):
                 self.record_tweet(tweet)
 
+
 if __name__ == "__main__":
     logger = log()
-    tweets_grabber = Tweet(credentials["raphael"])
+    tweets_grabber = Tweet(credentials["martin"], logger)
     tweets_grabber.authenticate()
     tweets_grabber.create_database("tweets.db")
     tweets_grabber.record("filter")
