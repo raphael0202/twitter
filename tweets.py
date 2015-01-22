@@ -24,11 +24,11 @@ steam_handler = logging.StreamHandler()
 steam_handler.setLevel(logging.DEBUG)
 logger.addHandler(steam_handler)
 
-credentials = { 'raphael' : {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
+credentials = { 'raphael': {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
                              "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
                              "consumer_key": "V7xjnC1AdwECbbcv9OosDkawK",
                              "consumer_secret": "rdEWrtop3r1ODjNCrPPpt18Z1Ey7BKtZRXJmwtTvQQ8u8JzULE"},
-                 'martin' : {'token' : "2987208064-TbFv1uRAlKP9p3R3thm0eSoMnOLaK21aqoon5fi",
+                 'martin': {'token' : "2987208064-TbFv1uRAlKP9p3R3thm0eSoMnOLaK21aqoon5fi",
                              'token_secret' : "GsLxcuHgUVReN7Fppnw4obyWB7StekgUpunYGuwEkmGxM",
                              'consumer_key' : "ZhGac09sniZ0ni5DEnreCnATf",
                              'consumer_secret' : "KvQJ4uQuHO2XeZULVgF2u1FIsbNNbDi4al9Pmj6fvZuDIB6WCL"}
@@ -73,7 +73,7 @@ class Tweet:
             return self.api.statuses.sample()
 
     def filter(self, loc="-179.0,-89.0,179.0,89.0"):
-        """Return the tweets ffiltered by the Twitter filter API.
+        """Return the tweets filtered by the Twitter filter API.
            
            Parameters:
            ----------
@@ -90,7 +90,6 @@ class Tweet:
             raise AccessError("You are not authenticated, please authenticate before streaming tweets.")
         else:
             return self.api.statuses.filter(locations=loc)
-
 
     def check_connection(self,tweet):
          if "hangup" in tweet:  # The stream was disconnected
@@ -266,7 +265,7 @@ class Tweet:
             method_func = self.filter
             
         for tweet in method_func():
-            self.check_connection(tweet) # check if we are still connected
+            self.check_connection(tweet)  # check if we are still connected
             if self.check_tweet(tweet):
                 self.record_tweet(tweet)
 
