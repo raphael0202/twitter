@@ -24,10 +24,15 @@ steam_handler = logging.StreamHandler()
 steam_handler.setLevel(logging.DEBUG)
 logger.addHandler(steam_handler)
 
-credentials = {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
-               "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
-               "consumer_key": "V7xjnC1AdwECbbcv9OosDkawK",
-               "consumer_secret": "rdEWrtop3r1ODjNCrPPpt18Z1Ey7BKtZRXJmwtTvQQ8u8JzULE"}
+credentials = { 'raphael' : {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
+                             "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
+                             "consumer_key": "V7xjnC1AdwECbbcv9OosDkawK",
+                             "consumer_secret": "rdEWrtop3r1ODjNCrPPpt18Z1Ey7BKtZRXJmwtTvQQ8u8JzULE"},
+                 'martin' : {'token' : "2987208064-TbFv1uRAlKP9p3R3thm0eSoMnOLaK21aqoon5fi",
+                             'token_secret' : "GsLxcuHgUVReN7Fppnw4obyWB7StekgUpunYGuwEkmGxM",
+                             'consumer_key' : "ZhGac09sniZ0ni5DEnreCnATf",
+                             'consumer_secret' : "KvQJ4uQuHO2XeZULVgF2u1FIsbNNbDi4al9Pmj6fvZuDIB6WCL"}
+              }
 
 
 def polygon_centroid(points):
@@ -236,7 +241,7 @@ class Tweet:
 
 
 if __name__ == "__main__":
-    tweets_grabber = Tweet(credentials)
+    tweets_grabber = Tweet(credentials["martin"])
     tweets_grabber.authenticate()
     tweets_grabber.create_database("tweets.db")
     tweets_grabber.record()
