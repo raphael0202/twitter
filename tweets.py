@@ -9,30 +9,38 @@ from logging.handlers import RotatingFileHandler
 import json
 import time
 
-# Creation of a logger
-logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
-
-# file_handler = RotatingFileHandler('activity.log', 'a', 1000000, 1)
-# file_handler.setLevel(logging.INFO)
-# file_handler.setFormatter(formatter)
-# logger.addHandler(file_handler)
-
-steam_handler = logging.StreamHandler()
-steam_handler.setLevel(logging.DEBUG)
-logger.addHandler(steam_handler)
-
-credentials = { 'raphael': {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
+credentials = {'raphael': {"token": "2987172311-nww55Y0ZKPKhth05wkkX88bn5z6INqQRDBq5xSX",
                              "token_secret": "digi83CDHjbD8vi8W8FnyLN7t8zd56pZ1XdqATdYJivex",
                              "consumer_key": "V7xjnC1AdwECbbcv9OosDkawK",
                              "consumer_secret": "rdEWrtop3r1ODjNCrPPpt18Z1Ey7BKtZRXJmwtTvQQ8u8JzULE"},
-                 'martin': {'token' : "2987208064-TbFv1uRAlKP9p3R3thm0eSoMnOLaK21aqoon5fi",
-                             'token_secret' : "GsLxcuHgUVReN7Fppnw4obyWB7StekgUpunYGuwEkmGxM",
-                             'consumer_key' : "ZhGac09sniZ0ni5DEnreCnATf",
-                             'consumer_secret' : "KvQJ4uQuHO2XeZULVgF2u1FIsbNNbDi4al9Pmj6fvZuDIB6WCL"}
-              }
+               'martin': {'token': "2987208064-TbFv1uRAlKP9p3R3thm0eSoMnOLaK21aqoon5fi",
+                             'token_secret': "GsLxcuHgUVReN7Fppnw4obyWB7StekgUpunYGuwEkmGxM",
+                             'consumer_key': "ZhGac09sniZ0ni5DEnreCnATf",
+                             'consumer_secret': "KvQJ4uQuHO2XeZULVgF2u1FIsbNNbDi4al9Pmj6fvZuDIB6WCL"}
+               }
+
+
+def log(steam_log=True, file_log=False, logger_level=logging.DEBUG,
+        steam_level=logging.INFO, file_level=logging.INFO):
+
+    # Creation of a logger
+    logger = logging.getLogger()
+    logger.setLevel(logger_level)
+
+    formatter = logging.Formatter('%(asctime)s :: %(levelname)s :: %(message)s')
+
+    if file_log:
+        file_handler = RotatingFileHandler('activity.log', 'a', 1000000, 1)
+        file_handler.setLevel(file_level)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
+    if steam_log:
+        steam_handler = logging.StreamHandler()
+        steam_handler.setLevel(steam_level)
+        logger.addHandler(steam_handler)
+
+    return logger
 
 
 def polygon_centroid(points):
@@ -270,6 +278,7 @@ class Tweet:
                 self.record_tweet(tweet)
 
 if __name__ == "__main__":
+    logger = log()
     tweets_grabber = Tweet(credentials["raphael"])
     tweets_grabber.authenticate()
     tweets_grabber.create_database("tweets.db")
