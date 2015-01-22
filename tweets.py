@@ -72,20 +72,24 @@ class Tweet:
         else:
             return self.api.statuses.sample()
 
-    def filter(self):
-        """Return the tweets sampled by the Twitter sample API.
+    def filter(self, loc="-179.0,-89.0,179.0,89.0"):
+        """Return the tweets ffiltered by the Twitter filter API.
+           
+           Parameters:
+           ----------
+           loc: str
+               Indicate the positions of the bounding box with which the geo-localized
+               tweets must be filtered.
 
            Returns:
            -------
            out: generator
                A generator returning the tweets in the JSON format.
         """
-
-        loc = "-179.0,-89.0,179.0,89.0"
         if not self.authenticated:
             raise AccessError("You are not authenticated, please authenticate before streaming tweets.")
         else:
-            return self.api.statuses.filter(locations = loc)
+            return self.api.statuses.filter(locations=loc)
 
 
     def check_connection(self,tweet):
@@ -248,19 +252,23 @@ class Tweet:
             conn.close()
 
     def record(self, method):
-        """Record the tweets from the sample Twitter API in the database."""
+        """Record the tweets from the sample Twitter API in the database.
+           
+           Parameters:
+           ----------
+           method: str
+                  The streaming function name that must be called.
+        """
         logging.info("Starting recording tweets...")
         if method == "sample":
-            for tweet in self.sample():
-                self.check_connection(tweet) # check if we are still connected
-                if self.check_tweet(tweet):
-                    self.record_tweet(tweet)
-        if method == "filter":
-            for tweet in self.filter():
-                self.check_connection(tweet) # check if we are still connected
-                if self.check_tweet(tweet):
-                    self.record_tweet(tweet)
-
+            method_func = self.sample
+        elif method == "filter":
+            method_function = self.filter 
+            
+        for tweet in self.method():
+            self.check_connection(tweet) # check if we are still connected
+            if self.check_tweet(tweet):
+                self.record_tweet(tweet)
 
 if __name__ == "__main__":
     tweets_grabber = Tweet(credentials["raphael"])
