@@ -92,7 +92,7 @@ class Tweet:
             return self.api.statuses.filter(locations=loc)
 
     def check_connection(self,tweet):
-         if "hangup" in tweet:  # The stream was disconnected
+        if "hangup" in tweet:  # The stream was disconnected
             logger.info("The stream was disconnected, attempting to reconnect in 5 min")
             time.sleep(300) # wait 5 minutes
             self.api = TwitterStream(auth=OAuth(**self.credentials))
