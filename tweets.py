@@ -122,7 +122,7 @@ class Tweet:
         for field in tweet_fields:
             if field not in tweet:
                 logger.debug("The tweet failed the test because the {} field "
-                             "is missing: {}.".format(field))
+                             "is missing.".format(field))
                 return False
 
             if not isinstance(tweet[field], unicode) or tweet[field] == "":
@@ -138,13 +138,13 @@ class Tweet:
 
         for field in place_fields:
             if field not in tweet["place"]:
-                logger.debug("The tweet failed the test because the {} field was "
+                logger.debug("The tweet failed the test because the {} field is "
                              "missing in tweet['place'].".format(field))
                 return False
 
             if field != "bounding_box":
                 if not isinstance(tweet["place"][field], unicode) or tweet["place"][field] == "":
-                    logger.debug("The tweet failed the test because the {} field in tweet['place'] was "
+                    logger.debug("The tweet failed the test because the {} field in tweet['place'] is "
                                  "incorrect: {}.".format(field, tweet["place"][field]))
                     return False
             else:
@@ -159,7 +159,7 @@ class Tweet:
 
         for field in bounding_box_fields:
             if field not in tweet["place"]["bounding_box"]:
-                logger.debug("The tweet failed the test because the {} field was "
+                logger.debug("The tweet failed the test because the {} field is "
                              "missing in tweet['place']['bounding_box'].".format(field))
                 return False
 
