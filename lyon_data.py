@@ -1,5 +1,6 @@
 from __future__ import unicode_literals, division
 from tweets import Tweet, polygon_centroid, log
+from tweet_heatmap import TweetCoord
 import sqlite3
 import logging
 import json
@@ -100,12 +101,25 @@ class LyonTweet(Tweet):
 
         if not hasattr(tweet["coordinates"], "__getitem__"):
             return False
-
         return True
+
+
+class LyonTweetCoord(TweetCoord):
+    def tweet_coord(self):
+        conn = sqlite3.connect(self.dbname)
+        c = conn.cursor()
+
+        coordinates = c.execute("SELECT COORDINATES FROM TWEET").fetchall()
+
+        conn.close()
+        return coordinates
+
 
 if __name__ == "__main__":
     logger = log()
-    tweets_grabber = LyonTweet(credentials["martin"], logger)
+    tweets_grabber = LyonTweet(credentials["raphael"], logger)
     tweets_grabber.authenticate()
     tweets_grabber.create_database("tweets_lyon.db")
-    tweets_grabber.record("filter")
+    tweets_grabber.record("filter", loc="4.746387, 45.719923, 4.913242, 45.789870")  # Coordinates of Lyon
+    # lyon_tweets = LyonTweetCoord("tweets_lyon.db")
+    # lyon_tweets.save_coord(f_name="coords_lyon")

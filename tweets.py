@@ -248,7 +248,7 @@ class Tweet:
                                                                    tweet["created_at"],
                                                                    tweet["lang"],
                                                                    tweet["place"]["id"]
-            ))
+                                                                   ))
         except Exception as e:
             logging.warn("Exception raised during database writing:\n{}".format(e))
         else:
@@ -256,7 +256,7 @@ class Tweet:
         finally:
             conn.close()
 
-    def record(self, method):
+    def record(self, method, **kwargs):
         """Record the tweets from the sample Twitter API in the database.
            
            Parameters:
@@ -270,10 +270,12 @@ class Tweet:
         elif method == "filter":
             method_func = self.filter
 
-        for tweet in method_func():
+        for tweet in method_func(**kwargs):
             self.check_connection(tweet)  # check if we are still connected
             if self.check_tweet(tweet):
                 self.record_tweet(tweet)
+                if "text" in tweet:
+                    print(tweet["text"])
 
 
 if __name__ == "__main__":
