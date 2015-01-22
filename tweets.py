@@ -72,6 +72,22 @@ class Tweet:
         else:
             return self.api.statuses.sample()
 
+    def filter(self):
+        """Return the tweets sampled by the Twitter sample API.
+
+           Returns:
+           -------
+           out: generator
+               A generator returning the tweets in the JSON format.
+        """
+
+        loc = "-179.0,-89.0,179.0,89.0"
+        if not self.authenticated:
+            raise AccessError("You are not authenticated, please authenticate before streaming tweets.")
+        else:
+            return self.api.statuses.filter(locations = loc)
+
+
     def check_connection(self,tweet):
          if "hangup" in tweet:  # The stream was disconnected
             logger.info("The stream was disconnected, attempting to reconnect in 5 min")
@@ -231,17 +247,23 @@ class Tweet:
         finally:
             conn.close()
 
-    def record(self):
+    def record(self, method):
         """Record the tweets from the sample Twitter API in the database."""
         logging.info("Starting recording tweets...")
-        for tweet in self.sample():
-            self.check_connection(tweet) # check if we are still connected
-            if self.check_tweet(tweet):
-                self.record_tweet(tweet)
+        if method == "sample":
+            for tweet in self.sample():
+                self.check_connection(tweet) # check if we are still connected
+                if self.check_tweet(tweet):
+                    self.record_tweet(tweet)
+        if method == "filter":
+            for tweet in self.filter():
+                self.check_connection(tweet) # check if we are still connected
+                if self.check_tweet(tweet):
+                    self.record_tweet(tweet)
 
 
 if __name__ == "__main__":
-    tweets_grabber = Tweet(credentials["martin"])
+    tweets_grabber = Tweet(credentials["raphael"])
     tweets_grabber.authenticate()
     tweets_grabber.create_database("tweets.db")
-    tweets_grabber.record()
+    tweets_grabber.record("filter")
