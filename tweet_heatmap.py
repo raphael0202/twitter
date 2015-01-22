@@ -8,7 +8,8 @@ import collections
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
-from mpl_toolkits.basemap import Basemap
+# from mpl_toolkits.basemap import Basemap
+
 
 class TweetCoord:
     def __init__(self, dbname):
@@ -56,6 +57,7 @@ class TweetCoord:
             for coord in coordinates:
                 data = json.loads(coord[0])
                 output_file.write("{} {}\n".format(data[1], data[0]))
+
 
 class TweetHeatMap:
     def __init__(self, dbname, config=None):
@@ -153,6 +155,7 @@ class AnimatedAggregatedTweets:
 
         plt.show()
 
-delta = datetime.timedelta(0,0,0,0,1) # aggregate by one minute slices (we should use bigger delta with a bigger db)
-am = AnimatedAggregatedTweets("tweets.db", delta, 100)
-am.animated_map()
+if __name__ == "__main__":
+    delta = datetime.timedelta(0, 0, 0, 0, 1) # aggregate by one minute slices (we should use bigger delta with a bigger db)
+    am = AnimatedAggregatedTweets("tweets.db", delta, 100)
+    am.animated_map()
