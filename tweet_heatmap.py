@@ -11,6 +11,7 @@ import numpy as np
 from mpl_toolkits.basemap import Basemap
 import pandas as pd
 import matplotlib.patches as mpatches
+import random
 
 class TweetCoord:
     def __init__(self, dbname):
@@ -41,6 +42,19 @@ class TweetCoord:
 
         conn.close()
         return coordinates
+
+    def sample_tweet_coord_time_lang(self, samplesize=10000):
+        """Recuperer coordonnees, temps et langue"""
+
+        conn = sqlite3.connect(self.dbname)
+        c = conn.cursor()
+
+        coordinates = c.execute("SELECT COORDINATES, CREATED_AT, LANG "
+                                "FROM TWEET, PLACE "
+                                "WHERE TWEET.PLACE_ID = PLACE.PLACE_ID").fetchall()
+
+        conn.close()
+        return random.sample(coordinates,samplesize)
 
     def distinct_lang(self):
         """"""
@@ -182,78 +196,115 @@ class AnimatedAggregatedTweets:
 
     def __init__(self,dbname,timedelta,interval=200):
         self.dbname = dbname
-        self.time_coord = TweetCoord(dbname).coord_time() # contains both time of tweet creation and geolocalisation
         self.timedelta = timedelta # should be a datetime.timdelta object representing the size of the time window
-        self.aggregate = defaultdict(list) # dictionnary of coordinates indexed by time windows
+        self.data = TweetCoord(dbname).sample_tweet_coord_time_lang()
+        self.aggregate = []
         self.interval = interval # update animation each interval millisec
+        self.time_win = []
 
     def time_window(self):
         """Aggregate tweets in time windows of timedelta time to monitor the temporal evolution"""
 
-        ## Ensure that tweets are ordered by date
         processed = []
-        for tc in self.time_coord:
+        for tcl in self.data:
             ## Decode string format to python objects
-            coords = json.loads(tc[0])
-            created_at = datetime.datetime.strptime(tc[1], "%a %b %d %H:%M:%S +0000 %Y")
-            processed.append((coords, created_at))
+            coords = json.loads(tcl[0])
+            created_at = datetime.datetime.strptime(tcl[1], "%a %b %d %H:%M:%S +0000 %Y")
+            lang = tcl[2]
+            processed.append((coords, created_at, lang))
 
         ## Sort them by date
         time_ordered = sorted(processed, key=lambda x: x[1])
 
         ## Aggregate tweets in time windows of duration timedelta
         first_time = time_ordered[0][1]
+        last_time = time_ordered[-1][1]
+
+        self.time_win = [first_time]
+        t = first_time
+        while t < last_time:
+            t += self.timedelta
+            self.time_win.append(t)
 
         for e in time_ordered:
             if e[1] < first_time + self.timedelta:
-                if first_time not in self.aggregate:
-                    self.aggregate[first_time] = [e[0]]
-                else:
-                    self.aggregate[first_time].append(e[0])
+                self.aggregate.append((first_time, e[2], e[0]))
             else:
                 while e[1] > first_time + self.timedelta:
                     first_time = first_time + self.timedelta
-                    self.aggregate[first_time] = []
 
-                self.aggregate[first_time] = [e[0]]
+                self.aggregate.append((first_time, e[2], e[0]))
 
-    def animated_map(self):
+        self.aggregate = sorted(self.aggregate , key=lambda t: t[0])
+
+    def animated_map(self, filename="movie.mp4"):
         """Plot the animated map"""
         self.time_window()
-        self.aggregate = collections.OrderedDict(sorted(self.aggregate.items() , key=lambda t: t[0]))
+
         map = Basemap(projection='cyl', resolution=None, lat_0=0., lon_0=0.)
         map.bluemarble()
-
-        x,y = map(0,0)
+        shade = None
         points = []
-        for k in self.aggregate.keys():
-            points.append(map.plot(x,y,'o', markerfacecolor = 'yellow', markeredgecolor= 'none' ,alpha=.5, markersize=3)[0])
+
+        def init():
+            """subroutine to update points"""
+            global shade
+            time = self.time_win[0]
+            lon = []
+            lat = []
+            for e in self.aggregate:
+                if e[0] == time:
+                    lon.append(e[2][0])
+                    lat.append(e[2][1])
+
+            x,y = map(0,0)
+            for k in range(len(lon)):
+                points.append(map.plot(x,y,'o', markerfacecolor = 'yellow', markeredgecolor= 'none' ,alpha=.5, markersize=3)[0])
+
+            for pt,ln,lt in zip(points, lon, lat):
+                x, y = map(ln,lt)
+                pt.set_data(x, y)
+
+            shade = map.nightshade(self.time_win[0],alpha=0.4)
+            plt.title('%s (UTC)' % self.time_win[0])
+
+            return points
 
         def animate(i):
             """subroutine to update points"""
-            lon = np.asarray(self.aggregate.values()[i])[:,0]
-            lat = np.asarray(self.aggregate.values()[i])[:,1]
-            for pt,lon,lat in zip(points, lon, lat):
-                x, y = map(lon,lat)
+            global shade
+            time = self.time_win[i]
+            lon = []
+            lat = []
+            for e in self.aggregate:
+                if e[0] == time:
+                    lon.append(e[2][0])
+                    lat.append(e[2][1])
+
+            for pt,ln,lt in zip(points, lon, lat):
+                x, y = map(ln,lt)
                 pt.set_data(x, y)
 
-            plt.title('%s (UTC)' % self.aggregate.keys()[i])
+            for c in shade.collections:
+                c.remove()
+            shade = map.nightshade(self.time_win[i],alpha=0.4)
+
+            plt.title('%s (UTC)' % self.time_win[i])
             return points
 
-        frm = len(self.aggregate)
-        anim = animation.FuncAnimation(plt.gcf(), animate, frames=frm, interval=200)
-
-        #anim.save('movie.mp4')
+        frm = len(self.time_win)
+        anim = animation.FuncAnimation(plt.gcf(), animate, range(frm), init_func=init, interval=self.interval)
+        anim.save(filename)
 
         plt.show()
 
-if __name__ == "__main__":
-	delta = datetime.timedelta(0,0,0,0,10)
-	langs = ["fr","en","pt","in","ja","es"]
-	VolumeTemps("tweets.db",langs,delta).plot_stacked()
-
 #if __name__ == "__main__":
-#    delta = datetime.timedelta(0, 0, 0, 0, 1) # aggregate by one minute slices (we should use bigger delta with a bigger db)
-#    am = AnimatedAggregatedTweets("tweets.db", delta, 100)
-#    am.animated_map()
+#	delta = datetime.timedelta(0,0,0,0,10)
+#	langs = ["fr","en","pt","in","ja","es"]
+#	VolumeTemps("tweets.db",langs,delta).plot_stacked()
+
+if __name__ == "__main__":
+    delta = datetime.timedelta(0, 0, 0, 0, 30) # aggregate by one minute slices (we should use bigger delta with a bigger db)
+    am = AnimatedAggregatedTweets("tweets.db", delta, 25)
+    am.animated_map()
 
